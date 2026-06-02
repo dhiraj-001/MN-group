@@ -1,16 +1,21 @@
 <template>
     <div class="p-8 min-h-screen bg-slate-50 flex justify-center relative" data-ce='[{"k":"t-light-class","v":"bg-slate-50"},{"k":"t-dark-class","v":"bg-slate-900"}]'>
         <div class="max-w-6xl w-full">
-            <div class="mb-6 flex items-center justify-between">
+            <div class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h2 class="text-3xl font-bold text-slate-800 tracking-tight" data-ce='[{"k":"t-light-class","v":"text-slate-800"},{"k":"t-dark-class","v":"text-white"}]'>Featured Products</h2>
                 
-                <!-- Filter Toggle Button -->
-                <button @click="isFilterDrawerOpen = true" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm" data-ce='[{"k":"t-light-class","v":"bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-indigo-600"},{"k":"t-dark-class","v":"bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-indigo-400"}]'>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                    Filters
-                </button>
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <!-- Search Bar -->
+                    <SearchBar class="w-full sm:w-64" @search="handleSearch" />
+
+                    <!-- Filter Toggle Button -->
+                    <button @click="isFilterDrawerOpen = true" class="w-full sm:w-auto flex justify-center items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm whitespace-nowrap" data-ce='[{"k":"t-light-class","v":"bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-indigo-600"},{"k":"t-dark-class","v":"bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-indigo-400"}]'>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                        Filters
+                    </button>
+                </div>
             </div>
             
             <!-- Active Filters / Badges Showcase -->
@@ -19,10 +24,12 @@
                 <Badge label="Electronics" variant="primary" removable />
                 <Badge label="Under $500" variant="warning" removable />
                 <Badge label="In Stock" variant="success" removable />
-                <button class="text-sm text-indigo-600 hover:text-indigo-800 font-medium underline-offset-2 hover:underline transition-colors" data-ce='[{"k":"t-light-class","v":"text-indigo-600 hover:text-indigo-800"},{"k":"t-dark-class","v":"text-indigo-400 hover:text-indigo-300"}]'>Clear all</button>
+                <button @click="clearAllFilters" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium underline-offset-2 hover:underline transition-colors" data-ce='[{"k":"t-light-class","v":"text-indigo-600 hover:text-indigo-800"},{"k":"t-dark-class","v":"text-indigo-400 hover:text-indigo-300"}]'>Clear all</button>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <EmptyState v-if="isEmpty" @action="clearAllFilters" />
+            
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <Card :_p="_p" :_pp="_pp" @action="openProductDetails" />
                 
                 <Card 
@@ -110,13 +117,17 @@
         </Drawer>
     </div>
 </template>
+
+
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import type { _p_TYP, _pp_TYP } from "../shared/types";
 import Card from "./src/Card.vue";
 import Drawer from "./src/Drawer.vue";
 import FilterPanel from "./src/FilterPanel.vue";
 import Badge from "./src/Badge.vue";
+import SearchBar from "./src/SearchBar.vue";
+import EmptyState from "./src/EmptyState.vue";
 
 const {_p,_pp} = defineProps<{
     _p:_p_TYP,
@@ -126,6 +137,25 @@ const {_p,_pp} = defineProps<{
 const isDrawerOpen = ref(false);
 const isFilterDrawerOpen = ref(false);
 const selectedProduct = ref<any>(null);
+const searchQuery = ref("");
+
+const isEmpty = computed(() => searchQuery.value.toLowerCase() === 'empty');
+
+const clearAllFilters = () => {
+    searchQuery.value = '';
+};
+
+const handleSearch = (query: string) => {
+    searchQuery.value = query;
+    if (_p && _p.f) {
+        _p.f.call("msg", {
+            type: `search`,
+            query: query,
+            _p: _p,
+            _pp: _pp,
+        });
+    }
+};
 
 const openProductDetails = (product: any) => {
     selectedProduct.value = product;
